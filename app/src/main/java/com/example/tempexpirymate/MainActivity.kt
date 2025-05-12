@@ -6,6 +6,7 @@ package com.example.tempexpirymate
 
 import android.os.Build
 import android.os.Bundle
+import android.widget.SlidingDrawer
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -72,9 +73,17 @@ import java.time.ZoneId
 import androidx.compose.material3.Button
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import kotlin.math.exp
+import androidx.compose.foundation.ExperimentalFoundationApi
+
+
 
 
 data class ExpiryItem(
+    val id:Long,
     val name: String,
     val expiryText:String,
     val statusColor: Color
@@ -102,7 +111,10 @@ fun ExpiryMateApp() {
         composable("main") {
             MainScreen(
                 items=items,
-                onAddClicked = { nav.navigate("addItem") })
+                onAddClicked = { nav.navigate("addItem") },
+                onDelete = {id->vm.deleteItem(id)},
+                onReset = {id->vm.resetItemDate(id)},
+                onEdit ={id->nav.navigate("edit/$id")} )
         }
         composable("addItem") {
             //Placeholder “Add Item” screen
@@ -120,7 +132,10 @@ fun ExpiryMateApp() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    items:List<ExpiryItem>, onAddClicked :()-> Unit) {
+    items:List<ExpiryItem>, onAddClicked :()-> Unit,
+    onDelete:(Long)-> Unit,
+    onReset: (Long) -> Unit,
+    onEdit: (Long) -> Unit) {
     Scaffold(
         topBar = {
             SmallTopAppBar(
@@ -144,15 +159,25 @@ fun MainScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ){
-                items(items){
-                    ExpiryRow(it)
+                items(items){item->
+                    ExpiryRow(
+                        item=item,
+                        onDelete = onDelete,
+                        onReset = onReset,
+                        onEdit = onEdit)
                 }
         }
         }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ExpiryRow(item: ExpiryItem){
+fun ExpiryRow(item: ExpiryItem,
+              onDelete:(Long)-> Unit,
+              onReset:(Long)-> Unit,
+              onEdit:(Long)-> Unit){
+    var menuExpanded by remember { mutableStateOf(false) }
+
 
     Surface (
         //1)Card container
@@ -160,6 +185,11 @@ fun ExpiryRow(item: ExpiryItem){
         tonalElevation = Dimens.cardElevation,
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.cardElevation)
+            .combinedClickable(
+                onClick = {/*optional tap */},
+                onLongClick = {menuExpanded=true}
+            )
+
     ){
         //2)Horizontal layout for icon,texts, and dot
         Row(
@@ -203,6 +233,33 @@ fun ExpiryRow(item: ExpiryItem){
             )
         }
 
+    }
+    DropdownMenu(
+        expanded = menuExpanded,
+        onDismissRequest = {menuExpanded=false}
+    ) {
+        DropdownMenuItem(
+            text={Text("Delete")},
+            onClick = {
+                menuExpanded=false
+                onDelete(item.id)
+            }
+        )
+
+        DropdownMenuItem(
+            text = {Text("Reset Date")},
+            onClick = {
+                menuExpanded=false
+                onReset(item.id)
+            }
+        )
+        DropdownMenuItem(
+            text={Text("Edite")},
+            onClick = {
+                menuExpanded=false
+                onEdit(item.id)
+            }
+        )
     }
 
 }
@@ -342,7 +399,7 @@ fun AddItemScreen(
 @Composable
 fun MainScreenPreview() {
     TempExpiryMateTheme {
-        MainScreen(items = emptyList(), onAddClicked = {})
+        MainScreen(items = emptyList(), onAddClicked = {}, onDelete = {}, onReset = {}, onEdit = {})
     }
 }
 

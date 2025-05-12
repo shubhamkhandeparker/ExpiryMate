@@ -33,9 +33,12 @@ class ExpiryViewModel(app: Application): AndroidViewModel(app){
     @RequiresApi(Build.VERSION_CODES.O)
     val items=dao.getAllFlow().map { list->
         list.map { entity-> ExpiryItem(
+            id = entity.id,
             name = entity.name,
-            expiryText= Instant.ofEpochMilli(entity.expiryEpochMs).atZone(ZoneId.systemDefault())
-                .toLocalDate().format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
+            expiryText = Instant.ofEpochMilli(entity.expiryEpochMs)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+                .format(DateTimeFormatter.ofPattern("MMM d, yyyy")),
             statusColor = Color(entity.statusColorInt)
         )
         }
@@ -47,7 +50,8 @@ class ExpiryViewModel(app: Application): AndroidViewModel(app){
 
                 )
     //Call this to insert new row
-    fun addItem(name: String,date: LocalDate,color: Color)=viewModelScope.launch {
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun addItem(name: String, date: LocalDate, color: Color)=viewModelScope.launch {
         dao.insert(
             ExpiryEntity(
                 name        =name,
@@ -57,8 +61,16 @@ class ExpiryViewModel(app: Application): AndroidViewModel(app){
         )
     }
     //Delete Support
-    fun deleteItem(entity: ExpiryEntity)=viewModelScope.launch {
-        dao.delete(entity)
+    fun deleteItem(id:Long)=viewModelScope.launch {
+        dao.getById(id)?.let {dao.delete(it)}
+    }
+
+    /**Reset the expiry date of[item] to *today*.*/
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun resetItemDate(id:Long)=viewModelScope.launch {
+        val todayEpoch= LocalDate.now().atStartOfDay(ZoneId.systemDefault())
+            .toInstant().toEpochMilli()
+        dao.updateExpiryDate(id,todayEpoch)
     }
 }
 

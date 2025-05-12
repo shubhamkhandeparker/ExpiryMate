@@ -17,4 +17,10 @@ interface ExpiryDao {
 
     @Delete
     suspend fun delete(entity: ExpiryEntity)
+
+    @Query("UPDATE expiry_items SET expiryEpochMs = :newEpoch WHERE id = :id")
+    suspend fun updateExpiryDate(id:Long,newEpoch:Long)
+
+    @Query("SELECT* FROM expiry_items WHERE id = :id")
+    suspend fun getById(id:Long): ExpiryEntity ?
 }
